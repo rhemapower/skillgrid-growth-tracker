@@ -202,52 +202,6 @@
         })
         (ok true)))))
 
-;; Add a new skill to the user's skill grid
-(define-public (add-skill (name (string-ascii 50)) (category (string-ascii 30)) (description (string-utf8 500)) (visibility uint) (initial-proficiency uint))
-  (let (
-    (user-data (map-get? users tx-sender))
-    (skill-id (get-next-skill-id tx-sender))
-  )
-    (asserts! (is-some user-data) ERR-NOT-FOUND)
-    (asserts! (is-valid-visibility visibility) ERR-VISIBILITY-SETTING)
-    (asserts! (and (> initial-proficiency u0) (is-valid-proficiency initial-proficiency)) ERR-INVALID-PROFICIENCY)
-    
-    ;; Create the new skill entry
-    (map-set skills 
-      {user: tx-sender, skill-id: skill-id}
-      {
-        name: name,
-        category: category,
-        description: description,
-        created-at: block-height,
-        visibility: visibility,
-        current-proficiency: initial-proficiency,
-        last-updated: block-height
-      }
-    )
-    
-    ;; Create initial progress update
-    (map-set skill-updates
-      {user: tx-sender, skill-id: skill-id, update-id: u1}
-      {
-        proficiency: initial-proficiency,
-        timestamp: block-height,
-        evidence: "",
-        milestone: "Initial skill level set"
-      }
-    )
-    
-    ;; Update user's skill count
-    (map-set users 
-      tx-sender 
-      {
-        created-at: (get created-at (unwrap-panic user-data)),
-        skill-count: (+ (get skill-count (unwrap-panic user-data)) u1)
-      }
-    )
-    
-    (ok skill-id)))
-
 ;; Update a skill's proficiency and add evidence
 (define-public (update-skill-progress (skill-id uint) (new-proficiency uint) (evidence (string-utf8 500)) (milestone (string-utf8 100)))
   (let (
